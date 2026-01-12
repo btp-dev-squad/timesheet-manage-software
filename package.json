@@ -1,7 +1,7 @@
 {
-  "name": "${{ values.component_id }}",
+  "name": "timesheet-manage-software",
   "version": "1.0.0",
-  "description": "${{ values.description }}",
+  "description": "Application to capture and process employee timesheets",
   "main": "dist/index.js",
   "scripts": {
     "start": "node --loader ts-node/esm src/index.ts",

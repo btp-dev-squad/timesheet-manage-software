@@ -1,0 +1,242 @@
+name: Prepare Release
+on:
+  # Manual trigger - run this when you're ready to prepare a release from staging
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Generate Changelog and Version
+        run: |
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Install required packages
+          npm install -g conventional-changelog-cli conventional-changelog-angular conventional-recommended-bump
+
+          # Ensure we're on staging
+          git checkout staging
+          git pull origin staging
+
+          echo "=========================================="
+          echo "🔍 PREPARE RELEASE - DEBUGGING INFO"
+          echo "=========================================="
+
+          # Show current commit info
+          echo ""
+          echo "📍 Current Commit Info:"
+          echo "  HEAD: $(git rev-parse HEAD)"
+          echo "  Branch: $(git branch --show-current)"
+          echo "  Message: $(git log -1 --pretty=format:'%s')"
+          echo "  Author: $(git log -1 --pretty=format:'%an <%ae>')"
+
+          # Show all tags
+          echo ""
+          echo "🏷️  All Tags in Repository:"
+          git tag -l | sort -V || echo "  (no tags found)"
+
+          # Show tags with their commits
+          echo ""
+          echo "🏷️  Tags with Commit References:"
+          for tag in $(git tag -l); do
+            commit=$(git rev-list -n 1 "$tag" 2>/dev/null || echo "unknown")
+            echo "  $tag → $commit"
+          done
+
+          # Check if there are commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo ""
+          echo "📊 Version Analysis:"
+          echo "  Last tag: ${LAST_TAG:-'(none)'}"
+          echo "  Current version: $(node -p "require('./package.json').version")"
+
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS_SINCE_LAST=$(git rev-list --count HEAD)
+            COMMIT_RANGE="HEAD"
+          else
+            COMMITS_SINCE_LAST=$(git rev-list --count ${LAST_TAG}..HEAD)
+            COMMIT_RANGE="${LAST_TAG}..HEAD"
+          fi
+
+          echo "Commits since last tag: $COMMITS_SINCE_LAST"
+
+          # Only prepare release if there are new commits
+          if [ "$COMMITS_SINCE_LAST" -gt 0 ]; then
+            # Generate changelog
+            if ! conventional-changelog -p angular -i CHANGELOG.md -s -r 0 --sort-commits-by date; then
+              echo "Conventional changelog failed, using manual approach..."
+
+              # Manual approach with proper categorization
+              echo "# Changelog" > TEMP_CHANGELOG.md
+              echo "" >> TEMP_CHANGELOG.md
+
+              VERSION_DATE=$(date +%Y-%m-%d)
+              echo "## [Unreleased] - $VERSION_DATE" >> TEMP_CHANGELOG.md
+              echo "" >> TEMP_CHANGELOG.md
+
+              ALL_COMMITS=$(git log $COMMIT_RANGE --pretty=format:"%h %s" --no-merges)
+
+              # Process Bug Fixes
+              BUG_FIXES=$(echo "$ALL_COMMITS" | grep -E "^[a-f0-9]+ (fix|bug)" || true)
+              if [ -n "$BUG_FIXES" ]; then
+                echo "### Bug Fixes" >> TEMP_CHANGELOG.md
+                echo "$BUG_FIXES" | while IFS= read -r commit; do
+                  if [ -n "$commit" ]; then
+                    echo "* $commit" >> TEMP_CHANGELOG.md
+                  fi
+                done
+                echo "" >> TEMP_CHANGELOG.md
+              fi
+
+              # Process Features
+              FEATURES=$(echo "$ALL_COMMITS" | grep -E "^[a-f0-9]+ feat" || true)
+              if [ -n "$FEATURES" ]; then
+                echo "### Features" >> TEMP_CHANGELOG.md
+                echo "$FEATURES" | while IFS= read -r commit; do
+                  if [ -n "$commit" ]; then
+                    echo "* $commit" >> TEMP_CHANGELOG.md
+                  fi
+                done
+                echo "" >> TEMP_CHANGELOG.md
+              fi
+
+              # Process Other changes
+              OTHER_CHANGES=$(echo "$ALL_COMMITS" | grep -vE "^[a-f0-9]+ (fix|feat|bug)" || true)
+              if [ -n "$OTHER_CHANGES" ]; then
+                echo "### Other Changes" >> TEMP_CHANGELOG.md
+                echo "$OTHER_CHANGES" | while IFS= read -r commit; do
+                  if [ -n "$commit" ]; then
+                    echo "* $commit" >> TEMP_CHANGELOG.md
+                  fi
+                done
+                echo "" >> TEMP_CHANGELOG.md
+              fi
+
+              # Append existing changelog if it exists
+              if [ -f CHANGELOG.md ] && [ -s CHANGELOG.md ]; then
+                echo "" >> TEMP_CHANGELOG.md
+                echo "---" >> TEMP_CHANGELOG.md
+                echo "" >> TEMP_CHANGELOG.md
+                cat CHANGELOG.md >> TEMP_CHANGELOG.md
+              fi
+
+              mv TEMP_CHANGELOG.md CHANGELOG.md
+            fi
+
+            echo "=== Generated Changelog ==="
+            head -30 CHANGELOG.md
+
+            # Get recommended version bump
+            RECOMMENDED_BUMP=$(conventional-recommended-bump -p angular)
+            echo "Recommended bump: $RECOMMENDED_BUMP"
+
+            # Get current version
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            echo "Current version: $CURRENT_VERSION"
+
+            # Calculate new version
+            if [ "$RECOMMENDED_BUMP" = "major" ]; then
+              NEW_VERSION=$(npm version major --no-git-tag-version)
+            elif [ "$RECOMMENDED_BUMP" = "minor" ]; then
+              NEW_VERSION=$(npm version minor --no-git-tag-version)
+            else
+              NEW_VERSION=$(npm version patch --no-git-tag-version)
+            fi
+
+            NEW_VERSION=${NEW_VERSION#v} # Remove 'v' prefix
+            echo "New version: $NEW_VERSION"
+
+            # Commit changes (without tag - tag will be created after merge to main)
+            git add CHANGELOG.md package.json
+            git commit -m "chore(release): prepare ${NEW_VERSION}"
+
+            # Show the commit that was created
+            echo ""
+            echo "📝 Release commit created:"
+            echo "  Commit: $(git rev-parse HEAD)"
+            echo "  Message: $(git log -1 --pretty=format:'%s')"
+
+            # Create tag on staging branch
+            echo ""
+            echo "🏷️  Creating tag v${NEW_VERSION}..."
+            git tag "v${NEW_VERSION}"
+
+            # Verify tag was created
+            if git rev-parse "v${NEW_VERSION}" >/dev/null 2>&1; then
+              TAG_COMMIT=$(git rev-list -n 1 "v${NEW_VERSION}")
+              echo "  ✅ Tag created locally"
+              echo "  Tag points to: ${TAG_COMMIT}"
+            else
+              echo "  ❌ Failed to create tag"
+              exit 1
+            fi
+
+            # Push to staging
+            echo ""
+            echo "📤 Pushing to staging..."
+            git push origin staging
+
+            echo ""
+            echo "📤 Pushing tag v${NEW_VERSION}..."
+            git push origin "v${NEW_VERSION}"
+
+            # Verify tag was pushed
+            echo ""
+            echo "🔍 Verifying remote tag..."
+            if git ls-remote --tags origin | grep -q "refs/tags/v${NEW_VERSION}"; then
+              echo "  ✅ Tag v${NEW_VERSION} confirmed on remote"
+            else
+              echo "  ⚠️  Tag may not be on remote yet"
+            fi
+
+            # Sync changelog back to develop to prevent branch divergence
+            echo "=== Syncing changelog to develop ==="
+            git checkout develop
+            git pull origin develop
+            git cherry-pick staging || {
+              echo "Cherry-pick failed, trying merge..."
+              git merge --no-ff staging -m "chore: sync changelog from staging"
+            }
+            git push origin develop
+
+            echo "✅ Release preparation complete for v${NEW_VERSION}"
+            echo "The changelog and version have been updated on both staging and develop branches."
+            echo "You can now create a PR from staging to main."
+          else
+            echo "No new commits since last release. Skipping release preparation."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create PR to main
+        run: |
+          # Check if a PR already exists from staging to main
+          EXISTING_PR=$(gh pr list --base main --head staging --json number --jq '.[0].number' || echo "")
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "✅ PR #$EXISTING_PR already exists from staging to main"
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            gh pr create --base main --head staging --title "Release v${VERSION}" --body "Automated release preparation for v${VERSION}" || echo "⚠️ PR creation skipped"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

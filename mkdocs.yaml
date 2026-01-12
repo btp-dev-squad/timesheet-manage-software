@@ -1,0 +1,55 @@
+site_name: Node.js Library Template (Typescript)
+site_description: Production-ready Node.js library template with comprehensive DevOps tooling and automation
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Backstage Registration: backstage-registration.md
+  - Features:
+      - Overview: features/overview.md
+      - Code Quality & Linting: features/code-quality.md
+      - Git Hooks & Automation: features/git-hooks.md
+      - Commit Management: features/commit-management.md
+      - GitHub Templates: features/github-templates.md
+      - CI/CD Workflows: features/cicd-workflows.md
+      - Branch Strategy: features/branch-strategy.md
+      - Security: features/security.md
+  - Technical Documentation:
+      - Project Structure: technical/project-structure.md
+      - TypeScript Configuration: technical/typescript-config.md
+      - ESLint Configuration: technical/eslint-config.md
+      - Prettier Configuration: technical/prettier-config.md
+      - Stylelint Configuration: technical/stylelint-config.md
+      - Husky Setup: technical/husky-setup.md
+      - Commitlint Configuration: technical/commitlint-config.md
+      - GitHub Actions Details: technical/github-actions.md
+      - Branch Protection Setup: technical/branch-protection.md
+  - Configuration:
+      - Package.json Scripts: configuration/package-scripts.md
+      - Environment Variables: configuration/environment.md
+      - Node Version Management: configuration/node-version.md
+
+plugins:
+  - techdocs-core
+
+markdown_extensions:
+  - tables
+  - admonition
+  - codehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+  - attr_list
+  - def_list

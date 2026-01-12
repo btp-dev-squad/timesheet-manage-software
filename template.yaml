@@ -1,0 +1,117 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: nodejs-library-template
+  title: Node.js Library Template
+  description: Production-ready template for creating Node.js libraries with comprehensive DevOps automation
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - nodejs
+    - typescript
+    - library
+    - recommended
+spec:
+  owner: group:aarinidevsquad
+  type: library
+
+  parameters:
+    - title: Project Information
+      required:
+        - repoUrl
+        - description
+        - owner
+      properties:
+        repoUrl:
+          title: Repository Name
+          type: string
+          description: Choose a name for your repository (this will also be used as the component ID)
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+            allowedOwners:
+              - btp-dev-squad
+          ui:autofocus: true
+
+        description:
+          title: Description
+          type: string
+          description: A brief description of your library
+          ui:help: "Describe what your library does"
+
+        owner:
+          title: Owner
+          type: string
+          description: Owner of the component (user or group)
+          ui:field: OwnerPicker
+          ui:options:
+            allowedKinds:
+              - Group
+              - User
+
+  steps:
+    - id: fetch-base
+      name: Fetch Base Template
+      action: fetch:template
+      input:
+        url: https://github.com/btp-dev-squad/template-node-lib
+        targetPath: ./
+        copyWithoutTemplating:
+          - .github/workflows/**
+          - .husky/**
+          - .devcontainer/**
+          - "**/*.md"
+          - docs/**
+          - template.yaml
+          - catalog-info.yaml
+        values:
+          component_id: ${{ (parameters.repoUrl | parseRepoUrl).repo }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+
+    - id: remove-template-files
+      name: Remove Template-specific Files
+      action: fs:delete
+      input:
+        files:
+          - template.yaml
+          - catalog-info.yaml
+          - docs
+          - mkdocs.yaml
+
+    - id: rename-catalog
+      name: Create Catalog Info for New Component
+      action: fs:rename
+      input:
+        files:
+          - from: catalog-info.template.yaml
+            to: catalog-info.yaml
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+        repoVisibility: private
+        deleteBranchOnMerge: true
+        gitAuthorName: Backstage
+        gitAuthorEmail: backstage@aarini.com
+
+    - id: register
+      name: Register Component
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open in Backstage
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

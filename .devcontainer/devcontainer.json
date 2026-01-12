@@ -1,0 +1,276 @@
+{
+  "name": "Template container",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+
+  // Features to install in the container
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-contrib/features/cds:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "upgradePackages": true,
+      "username": "node",
+      "userUid": "1000",
+      "userGid": "1000"
+    }
+  },
+
+  // Configure VS Code settings and extensions
+  "customizations": {
+    "vscode": {
+      // Extensions to install automatically
+      "extensions": [
+        // SAP CAP & CDS
+        "SAPSE.vscode-cds",
+        "saposs.sap-cds-lsp",
+
+        // SAPUI5/Fiori
+        "SAPSE.sap-ux-fiori-tools-extension-pack",
+        "SAPSE.sap-ux-application-modeler-extension",
+        "SAPSE.sap-ux-help-extension",
+
+        // Code Quality & Formatting
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "stylelint.vscode-stylelint",
+
+        // Git & GitHub
+        "github.vscode-github-actions",
+        "github.vscode-pull-request-github",
+        "eamodio.gitlens",
+
+        // Testing
+        "orta.vscode-jest",
+
+        // Utilities
+        "humao.rest-client",
+        "usernamehw.errorlens",
+        "christian-kohler.path-intellisense",
+        "streetsidesoftware.code-spell-checker",
+        "yzhang.markdown-all-in-one",
+        "redhat.vscode-yaml",
+        "editorconfig.editorconfig",
+
+        // Database
+        "alexcvzz.vscode-sqlite",
+        "qwtel.sqlite-viewer",
+
+        // Icon & Color Themes
+        "PKief.material-icon-theme",
+        "zhuangtongfa.Material-theme"
+      ],
+
+      // VS Code Settings
+      "settings": {
+        // Editor
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit",
+          "source.fixAll.stylelint": "explicit"
+        },
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.detectIndentation": false,
+        "editor.rulers": [100],
+        "editor.wordWrap": "on",
+        "editor.bracketPairColorization.enabled": true,
+        "editor.guides.bracketPairs": true,
+        "editor.minimap.enabled": false,
+
+        // Font Configuration
+        "editor.fontFamily": "'Fira Code', 'JetBrains Mono', 'Cascadia Code', 'SF Mono', Menlo, Monaco, 'Courier New', monospace",
+        "editor.fontSize": 14,
+        "editor.fontWeight": "400",
+        "editor.fontLigatures": true,
+        "editor.lineHeight": 22,
+        "editor.letterSpacing": 0.5,
+
+        // Files
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "files.trimFinalNewlines": true,
+        "files.eol": "\n",
+        "files.exclude": {
+          "**/.git": true,
+          "**/node_modules": true,
+          "**/coverage": true,
+          "**/.DS_Store": true
+        },
+        "files.watcherExclude": {
+          "**/node_modules/**": true,
+          "**/coverage/**": true
+        },
+        "files.associations": {
+          "*.cds": "cds",
+          "*.csn": "json",
+          "*.csv": "csv"
+        },
+
+        // ESLint
+        "eslint.validate": ["javascript", "javascriptreact"],
+        "eslint.lintTask.enable": true,
+        "eslint.workingDirectories": [
+          {
+            "mode": "auto"
+          }
+        ],
+
+        // Prettier
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[jsonc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[yaml]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[markdown]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+
+        // CDS
+        "cds.completion.workspaceSymbols.enabled": true,
+        "cds.outline.enabled": true,
+        "cds.validation.enabled": true,
+
+        // Git
+        "git.autofetch": true,
+        "git.confirmSync": false,
+        "git.enableSmartCommit": true,
+
+        // GitHub Actions
+        "github-actions.workflows.pinned.workflows": [
+          ".github/workflows/code-automation.yml"
+        ],
+
+        // Jest
+        "jest.autoRun": "off",
+        "jest.showCoverageOnLoad": true,
+
+        // Terminal
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/bin/zsh"
+          }
+        },
+        "terminal.integrated.fontFamily": "'Fira Code', 'MesloLGS NF', 'SF Mono', monospace",
+        "terminal.integrated.fontSize": 13,
+        "terminal.integrated.fontWeight": "400",
+        "terminal.integrated.lineHeight": 1.2,
+
+        // Workbench Appearance
+        "workbench.iconTheme": "material-icon-theme",
+        "workbench.colorTheme": "One Dark Pro Darker",
+
+        // Error Lens
+        "errorLens.enabledDiagnosticLevels": ["error", "warning"],
+
+        // Spell Checker
+        "cSpell.words": [
+          "aarini",
+          "HANA",
+          "XSUAA",
+          "Fiori",
+          "SAPUI",
+          "uuidv",
+          "commitlint",
+          "stylelint"
+        ],
+
+        // Explorer
+        "explorer.confirmDelete": false,
+        "explorer.confirmDragAndDrop": false,
+
+        // Search
+        "search.exclude": {
+          "**/node_modules": true,
+          "**/coverage": true,
+          "**/.git": true,
+          "**/dist": true,
+          "**/build": true,
+          "**/.vscode": true
+        }
+      }
+    }
+  },
+
+  // Port forwarding
+  "forwardPorts": [4004],
+  "portsAttributes": {
+    "4004": {
+      "label": "CAP Application Server",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // Environment variables for development
+  "remoteEnv": {
+    "NODE_ENV": "development",
+    "DEBUG": "cds"
+  },
+
+  // Lifecycle scripts
+  "onCreateCommand": {
+    "install-deps": "npm install",
+    "setup-husky": "npm run prepare"
+  },
+
+  "postCreateCommand": {
+    "deploy-db": "npx cds deploy --to sqlite",
+    "verify-setup": "npx cds env get requires.auth.users"
+  },
+
+  "postStartCommand": {
+    "info": "echo '✅ Dev Container Ready! Run: npm run watch' && echo '📖 Docs: See DEVCONTAINER.md for more info'"
+  },
+
+  // Run commands after the container is created
+  "postAttachCommand": {
+    "server-info": "echo '🚀 CAP Server: http://localhost:4004' && echo '👤 Test Users: admin/admin, manager/manager, employee/employee'"
+  },
+
+  // Mount the parent folder as workspace
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+  // Mount git credentials for seamless git operations
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,consistency=cached"
+  ],
+
+  // Run as non-root user
+  "remoteUser": "node",
+
+  // Container features
+  "containerEnv": {
+    "TZ": "UTC"
+  },
+
+  // Wait for these commands to finish before considering the container "ready"
+  "waitFor": "onCreateCommand",
+
+  // Update remote user UID/GID to match local user (prevents permission issues)
+  "updateRemoteUserUID": true,
+
+  // Enable ptrace-based debugging
+  "capAdd": ["SYS_PTRACE"],
+  "securityOpt": ["seccomp=unconfined"],
+
+  // Resource limits (optional - adjust based on your needs)
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb",
+    "storage": "32gb"
+  }
+}

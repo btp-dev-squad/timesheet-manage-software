@@ -1,0 +1,39 @@
+{
+  "recommendations": [
+    // SAP CAP & CDS
+    "SAPSE.vscode-cds",
+    "saposs.sap-cds-lsp",
+
+    // SAPUI5/Fiori
+    "SAPSE.sap-ux-fiori-tools-extension-pack",
+    "SAPSE.sap-ux-application-modeler-extension",
+    "SAPSE.sap-ux-help-extension",
+
+    // Code Quality & Formatting
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "stylelint.vscode-stylelint",
+
+    // Git & GitHub
+    "github.vscode-github-actions",
+    "github.vscode-pull-request-github",
+    "eamodio.gitlens",
+
+    // Testing
+    "orta.vscode-jest",
+
+    // Utilities
+    "humao.rest-client",
+    "usernamehw.errorlens",
+    "christian-kohler.path-intellisense",
+    "streetsidesoftware.code-spell-checker",
+    "yzhang.markdown-all-in-one",
+    "redhat.vscode-yaml",
+    "editorconfig.editorconfig",
+
+    // Database
+    "alexcvzz.vscode-sqlite",
+    "qwtel.sqlite-viewer"
+  ],
+  "unwantedRecommendations": []
+}

@@ -1,0 +1,208 @@
+name: Auto Release
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    # Only run on merges, not on the release commit itself or fresh start initial commit
+    if: "!contains(github.event.head_commit.message, 'chore(release)') && !contains(github.event.head_commit.message, 'chore: initial commit')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Initialize Repository (if needed)
+        id: init_check
+        run: |
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if repository needs initialization (no develop branch)
+          if ! git ls-remote --heads origin develop | grep -q develop; then
+            echo "🆕 New repository detected - initializing branches and tags..."
+            echo "needs_init=true" >> $GITHUB_OUTPUT
+
+            # Create develop branch
+            echo "📦 Creating develop branch..."
+            git checkout -b develop || git checkout develop
+            git push origin develop
+            echo "✅ Develop branch created"
+
+            # Create staging branch
+            echo "📦 Creating staging branch..."
+            git checkout -b staging || git checkout staging
+            git push origin staging
+            echo "✅ Staging branch created"
+
+            # Return to main
+            git checkout main
+
+            echo "✅ Repository initialized with develop and staging branches"
+          else
+            echo "✅ Repository already initialized (develop branch exists)"
+            echo "needs_init=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Install required packages
+          npm install -g conventional-recommended-bump
+
+          echo "=========================================="
+          echo "🔍 DEBUGGING INFORMATION"
+          echo "=========================================="
+
+          # Show current commit
+          echo ""
+          echo "📍 Current Commit:"
+          echo "  Hash: $(git rev-parse HEAD)"
+          echo "  Message: $(git log -1 --pretty=format:'%s')"
+          echo "  Author: $(git log -1 --pretty=format:'%an <%ae>')"
+          echo "  Date: $(git log -1 --pretty=format:'%ai')"
+
+          # Show commit history
+          echo ""
+          echo "📜 Recent Commit History:"
+          git log --oneline --decorate -n 10
+
+          # Show all tags
+          echo ""
+          echo "🏷️  All Tags:"
+          git tag -l || echo "  (no tags found)"
+
+          # Show tags with commit associations
+          echo ""
+          echo "🏷️  Tags with Commits:"
+          for tag in $(git tag -l); do
+            commit=$(git rev-list -n 1 "$tag" 2>/dev/null || echo "unknown")
+            echo "  $tag → $commit"
+          done
+
+          # Show package.json version
+          echo ""
+          echo "📦 Package Information:"
+          echo "  Name: $(node -p "require('./package.json').name")"
+          echo "  Version: $(node -p "require('./package.json').version")"
+
+          # Show branches
+          echo ""
+          echo "🌿 Branches:"
+          git branch -a
+
+          # Show remote info
+          echo ""
+          echo "🌐 Remote Info:"
+          git remote -v
+
+          echo ""
+          echo "=========================================="
+
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo ""
+          echo "🔍 Checking for tag: v${CURRENT_VERSION}"
+
+          # Check if ANY tags exist in the repository
+          TAG_COUNT=$(git tag -l | wc -l | tr -d ' ')
+          echo "📊 Total tags in repository: ${TAG_COUNT}"
+
+          # Check if a tag already exists for this version
+          if git rev-parse "v${CURRENT_VERSION}" >/dev/null 2>&1; then
+            echo "✅ Tag v${CURRENT_VERSION} already exists. Release was likely created from staging."
+            echo "Creating GitHub release..."
+
+            if gh release view "v${CURRENT_VERSION}" >/dev/null 2>&1; then
+              echo "✅ GitHub release already exists for v${CURRENT_VERSION}"
+            else
+              echo "Creating GitHub release for v${CURRENT_VERSION}..."
+              if gh release create "v${CURRENT_VERSION}" \
+                --title "Release v${CURRENT_VERSION}" \
+                --notes-file CHANGELOG.md \
+                --latest; then
+                echo "✅ Successfully created GitHub release"
+              else
+                echo "⚠️ GitHub release creation failed"
+              fi
+            fi
+          elif [ "$TAG_COUNT" -eq 0 ]; then
+            echo "🆕 No tags found - this appears to be a fresh start!"
+            echo ""
+            echo "Setting up initial version and tag..."
+
+            # Reset version to 1.0.0 if it's not already
+            if [ "$CURRENT_VERSION" != "1.0.0" ]; then
+              echo "📝 Updating package.json version from ${CURRENT_VERSION} to 1.0.0"
+              npm version 1.0.0 --no-git-tag-version --allow-same-version
+              CURRENT_VERSION="1.0.0"
+            fi
+
+            echo "🏷️  Creating initial tag v1.0.0..."
+            git tag "v1.0.0"
+            git push origin "v1.0.0"
+
+            # Create initial CHANGELOG if it doesn't exist
+            if [ ! -f CHANGELOG.md ]; then
+              echo "# Changelog" > CHANGELOG.md
+              echo "" >> CHANGELOG.md
+              echo "## [1.0.0] - $(date +%Y-%m-%d)" >> CHANGELOG.md
+              echo "" >> CHANGELOG.md
+              echo "### Added" >> CHANGELOG.md
+              echo "- Initial release" >> CHANGELOG.md
+            fi
+
+            # Commit the version change if package.json was updated
+            if git diff --quiet package.json; then
+              echo "✅ No changes to commit"
+            else
+              git add package.json CHANGELOG.md
+              git commit -m "chore(release): initialize version to 1.0.0" -m "🤖 Generated with [Claude Code](https://claude.com/claude-code)" -m "Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+              git push origin main
+            fi
+
+            echo "✅ Initial tag v1.0.0 created successfully"
+
+            # Create GitHub release
+            echo "Creating GitHub release for v1.0.0..."
+            if gh release create "v1.0.0" \
+              --title "Release v1.0.0" \
+              --notes "Initial release" \
+              --latest; then
+              echo "✅ Successfully created GitHub release"
+            else
+              echo "⚠️ GitHub release creation failed"
+            fi
+          else
+            echo "⚠️ No tag found for v${CURRENT_VERSION}"
+            echo ""
+            echo "This shouldn't happen if the changelog workflow ran on staging."
+            echo "The version and changelog should be prepared before merging to main."
+            echo ""
+            echo "This usually means:"
+            echo "1. The 'Prepare Release' workflow hasn't been run on staging, OR"
+            echo "2. The version in package.json was manually changed without creating a tag"
+            echo ""
+            echo "To fix this:"
+            echo "1. Go to staging branch and run the 'Prepare Release' workflow"
+            echo "2. Merge staging → main to trigger this release workflow"
+            echo ""
+            echo "Alternatively, create the tag manually:"
+            echo "  git tag v${CURRENT_VERSION}"
+            echo "  git push origin v${CURRENT_VERSION}"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

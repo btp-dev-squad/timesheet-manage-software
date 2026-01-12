@@ -1,0 +1,27 @@
+apiVersion: backstage.io/v1alpha1
+kind: Template
+metadata:
+  name: nodejs-library-template
+  title: Node.js Library Template
+  description: Production-ready template for creating Node.js libraries with comprehensive DevOps automation
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - nodejs
+    - typescript
+    - library
+    - template
+    - devops
+    - recommended
+  links:
+    - url: https://github.com/btp-dev-squad/template-node-lib
+      title: GitHub Repository
+      icon: github
+    - url: https://github.com/btp-dev-squad/template-node-lib/blob/main/docs/
+      title: Documentation
+      icon: docs
+spec:
+  owner: group:aarinidevsquad
+  type: template
+  lifecycle: production
+  system: developer-platform
